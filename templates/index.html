@@ -317,12 +317,20 @@
 
         <div class="intro">
             <h2>Resource Management Console</h2>
+        
             <p>
                 Analyse system safety, evaluate resource requests, detect deadlocks,
                 compare allocation recommendations, and analyse resource flexibility.
             </p>
+        
+            <button type="button" id="randomDatasetButton">
+                🎲 Generate Random Dataset
+            </button>
+        
+            <p id="randomDatasetStatus" class="hint" aria-live="polite">
+                Click the button to generate new input values for all five sections.
+            </p>
         </div>
-
         <!-- SECTION 1: BANKER'S ALGORITHM -->
         <details class="panel" open>
             <summary>1. Banker's Algorithm</summary>
@@ -1191,7 +1199,151 @@
                 "flexibilityResult"
             );
         }
+    // ============================================
+    // RANDOM DATASET GENERATOR FOR ALL FIVE SECTIONS
+    // ============================================
 
+    function generateRandomDataset() {
+        // Generate a random integer between min and max, inclusive.
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        // Generate a resource vector.
+        function randomVector(length, min, max) {
+            return Array.from(
+                { length },
+                () => randomInt(min, max)
+            );
+        }
+
+        // Format a matrix for the textarea inputs.
+        function formatMatrix(matrix) {
+            return matrix
+                .map(row => row.join(", "))
+                .join("\n");
+        }
+
+        // Randomly select the number of processes and resource types.
+        const processCount = randomInt(3, 5);
+        const resourceCount = randomInt(2, 3);
+
+        // Generate the Available Vector.
+        const available = randomVector(resourceCount, 0, 5);
+
+        // Generate Maximum and Allocation matrices.
+        // Allocation never exceeds Maximum for the same process.
+        const maximum = [];
+        const allocation = [];
+        const need = [];
+
+        for (let p = 0; p < processCount; p++) {
+            const maxRow = randomVector(resourceCount, 1, 8);
+
+            const allocationRow = maxRow.map(
+                maxValue => randomInt(0, maxValue)
+            );
+
+            const needRow = maxRow.map(
+                (maxValue, r) => maxValue - allocationRow[r]
+            );
+
+            maximum.push(maxRow);
+            allocation.push(allocationRow);
+            need.push(needRow);
+        }
+
+        // Generate a valid process ID for the resource request section.
+        const processId = randomInt(0, processCount - 1);
+
+        // Generate a request that does not exceed the selected process's need.
+        const request = need[processId].map(
+            needValue => randomInt(0, needValue)
+        );
+
+        // Sometimes make the request exceed available resources,
+        // allowing users to test rejected requests too.
+        if (Math.random() < 0.4) {
+            const resourceIndex = randomInt(0, resourceCount - 1);
+
+            request[resourceIndex] =
+                available[resourceIndex] + 1;
+        }
+
+        // Generate the Outstanding Request Matrix.
+        // Values are randomized independently of Maximum and Allocation,
+        // because these represent current outstanding requests.
+        const outstanding = Array.from(
+            { length: processCount },
+            () => randomVector(resourceCount, 0, 2)
+        );
+
+        // Generate pending requests for PARAH.
+        // Each row contains: Process ID, followed by its request vector.
+        const pendingRequests = [];
+
+        for (let p = 0; p < processCount; p++) {
+            const pendingVector = need[p].map(
+                needValue => randomInt(0, needValue)
+            );
+
+            pendingRequests.push([
+                p,
+                ...pendingVector
+            ]);
+        }
+
+        // Update the shared input fields used by Sections 1–5.
+        document.getElementById("available").value =
+            available.join(", ");
+
+        document.getElementById("maximum").value =
+            formatMatrix(maximum);
+
+        document.getElementById("allocation").value =
+            formatMatrix(allocation);
+
+        // Update Section 2: Resource Request.
+        document.getElementById("processId").value =
+            processId;
+
+        document.getElementById("requestVector").value =
+            request.join(", ");
+
+        // Update Section 3: Deadlock Detection.
+        document.getElementById("outstanding").value =
+            formatMatrix(outstanding);
+
+        // Update Section 4: PARAH Recommendation.
+        document.getElementById("pending").value =
+            formatMatrix(pendingRequests);
+
+        // Clear previous results so they are not mistaken for results
+        // belonging to the newly generated dataset.
+        [
+            "safetyResult",
+            "requestResult",
+            "deadlockResult",
+            "parahResult",
+            "flexibilityResult"
+        ].forEach(id => {
+            const result = document.getElementById(id);
+
+            result.replaceChildren();
+            result.className = "result";
+        });
+
+        // Show a status message.
+        document.getElementById("randomDatasetStatus").textContent =
+            `New dataset generated: ${processCount} processes, ` +
+            `${resourceCount} resource types. ` +
+            `Run each section's analysis button to see the results.`;
+    }
+
+    // Connect the button to the generator.
+    document
+        .getElementById("randomDatasetButton")
+        .addEventListener("click", generateRandomDataset);
     </script>
 
 </body>

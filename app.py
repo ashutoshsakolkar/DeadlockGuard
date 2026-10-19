@@ -15,9 +15,22 @@ app = Flask(__name__)
 
 # HOME PAGE
 @app.route("/")
-def home():
-    return render_template("index.html")
+def index():
+    import os
 
+    template_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        "templates",
+        "index.html"
+    )
+
+    with open(template_path, "r", encoding="utf-8") as file:
+        html = file.read()
+
+    print("TEMPLATE PATH:", template_path)
+    print("BUTTON EXISTS IN FILE:", "Generate Random Dataset" in html)
+
+    return render_template("index.html")
 
 # API 1: CHECK SYSTEM SAFETY
 @app.route("/api/safety", methods=["POST"])
