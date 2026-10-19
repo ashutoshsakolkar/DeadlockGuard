@@ -19,6 +19,32 @@ The application uses Python and Flask for backend processing and HTML, CSS, and 
 
 It provides an environment for exploring how operating systems manage competing resource requests, determine safe execution sequences, identify deadlocked processes, and evaluate resource allocation decisions.
 
+## 💡 What's Different About DeadlockGuard?
+
+DeadlockGuard goes beyond simply checking whether a system is in a safe state or detecting a deadlock. The project combines standard operating-system algorithms with additional features to explore resource-allocation decisions from different perspectives.
+
+### 1. Priority-Aware Resource Allocation (PARAH)
+Instead of only evaluating requests independently, PARAH ranks pending resource requests using a heuristic scoring function. This allows users to compare requests and explore how prioritization can influence resource-allocation decisions.
+
+### 2. Resource-Allocation Flexibility Analysis
+A system's state is not just about whether it is safe. It is also useful to understand how many unfinished processes can proceed immediately with the currently available resources.
+
+DeadlockGuard introduces a flexibility score based on the proportion of unfinished processes that are immediately eligible to proceed. This provides an additional perspective on the system's current resource-allocation state.
+
+### 3. Random Dataset Generation
+Testing different resource-allocation scenarios manually can be repetitive. The random dataset generator allows users to generate new input values across all five modules with a single click, making experimentation quicker and more convenient.
+
+### 4. Multiple Analyses in One Interface
+DeadlockGuard brings Banker's Algorithm, resource request evaluation, deadlock detection, PARAH recommendations, and flexibility analysis together in one web application.
+
+Users can experiment with the same resource-allocation inputs across multiple analyses and observe how each approach evaluates the system.
+
+### Our Approach
+
+The main idea is to combine established deadlock-management techniques with a heuristic recommendation method and an additional flexibility metric in a single interactive simulator.
+
+PARAH and the flexibility score are experimental, rule-based approaches. They provide additional ways to examine resource allocation rather than replacing established operating-system algorithms or guaranteeing better performance.
+
 ## ✨ Features
 
 ### 1. Banker's Algorithm
