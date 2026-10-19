@@ -282,3 +282,78 @@ def parah_recommendation(
             else "No safe pending requests are available."
         )
     }
+# DEADLOCKGUARD: SAFE-SEQUENCE FLEXIBILITY ANALYSIS
+
+def analyze_flexibility(available, maximum, allocation):
+    """
+    Analyse the current resource-allocation flexibility.
+
+    Counts processes whose remaining resource needs can
+    currently be satisfied using available resources.
+
+    This is a heuristic indicator, NOT a deadlock probability.
+    """
+
+    process_count = len(allocation)
+    resource_count = len(available)
+
+    need = calculate_need(maximum, allocation)
+
+    # Identify unfinished processes
+    unfinished = [
+        i for i in range(process_count)
+        if any(allocation[i][j] > 0 for j in range(resource_count))
+        or any(need[i][j] > 0 for j in range(resource_count))
+    ]
+
+    # Count processes that can execute immediately
+    eligible_processes = []
+
+    for i in unfinished:
+        if all(
+            need[i][j] <= available[j]
+            for j in range(resource_count)
+        ):
+            eligible_processes.append(f"P{i}")
+
+    unfinished_count = len(unfinished)
+
+    flexibility_score = (
+        len(eligible_processes) / unfinished_count
+        if unfinished_count > 0
+        else 1.0
+    )
+
+    # Check overall safety separately
+    safety = bankers_algorithm(
+        available,
+        maximum,
+        allocation
+    )
+
+    if not safety["safe"]:
+        risk_level = "HIGH"
+        warning = "Unsafe state: no complete safe sequence was found."
+    elif flexibility_score <= 0.25:
+        risk_level = "HIGH"
+        warning = "Limited immediate execution options."
+    elif flexibility_score <= 0.50:
+        risk_level = "MODERATE"
+        warning = "Resource-allocation flexibility is limited."
+    else:
+        risk_level = "LOW"
+        warning = "Multiple immediate execution options are available."
+
+    return {
+        "safe": safety["safe"],
+        "eligible_processes": eligible_processes,
+        "eligible_count": len(eligible_processes),
+        "unfinished_count": unfinished_count,
+        "flexibility_score": round(flexibility_score, 3),
+        "flexibility_percentage": round(
+            flexibility_score * 100, 2
+        ),
+        "risk_level": risk_level,
+        "warning": warning,
+        "safe_sequence": safety["safe_sequence"]
+    }

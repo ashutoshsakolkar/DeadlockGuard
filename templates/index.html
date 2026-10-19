@@ -42,7 +42,6 @@
         header h1 {
             margin: 0;
             font-size: 32px;
-            letter-spacing: 0.5px;
         }
 
         header p {
@@ -65,8 +64,8 @@
             color: var(--olive-dark);
         }
 
-        .intro p {
-            margin-top: 4px;
+        .intro p,
+        .description {
             color: var(--muted);
         }
 
@@ -116,7 +115,6 @@
         }
 
         .description {
-            color: var(--muted);
             margin: 15px 0;
         }
 
@@ -207,21 +205,6 @@
         .result.warning {
             background: var(--danger-bg);
             border-left-color: var(--terracotta);
-        }
-
-        .status {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 13px;
-            font-weight: bold;
-            background: #e0e9d7;
-            color: #35402f;
-        }
-
-        .warning .status {
-            background: #f0d7c7;
-            color: #763e26;
         }
 
         .table-wrap {
@@ -331,15 +314,16 @@
     </header>
 
     <main>
+
         <div class="intro">
             <h2>Resource Management Console</h2>
             <p>
                 Analyse system safety, evaluate resource requests, detect deadlocks,
-                and compare safe allocation recommendations.
+                compare allocation recommendations, and analyse resource flexibility.
             </p>
         </div>
 
-        <!-- 1. Banker's Algorithm -->
+        <!-- SECTION 1: BANKER'S ALGORITHM -->
         <details class="panel" open>
             <summary>1. Banker's Algorithm</summary>
 
@@ -350,7 +334,10 @@
 
                 <label for="available">Available Vector</label>
                 <input id="available" value="3, 3, 2">
-                <p class="hint">Enter resource quantities separated by commas.</p>
+
+                <p class="hint">
+                    Enter resource quantities separated by commas.
+                </p>
 
                 <label for="maximum">Maximum Matrix</label>
                 <textarea id="maximum" rows="5">7, 5, 3
@@ -366,12 +353,15 @@
 2, 1, 1
 0, 0, 2</textarea>
 
-                <button type="button" onclick="checkSafety()">Check Safety</button>
+                <button type="button" onclick="checkSafety()">
+                    Check Safety
+                </button>
+
                 <div id="safetyResult" class="result" aria-live="polite"></div>
             </div>
         </details>
 
-        <!-- 2. Resource Request -->
+        <!-- SECTION 2: RESOURCE REQUEST -->
         <details class="panel">
             <summary>2. Resource Request</summary>
 
@@ -387,12 +377,15 @@
                 <label for="requestVector">Request Vector</label>
                 <input id="requestVector" value="1, 0, 1">
 
-                <button type="button" onclick="checkRequest()">Evaluate Request</button>
+                <button type="button" onclick="checkRequest()">
+                    Evaluate Request
+                </button>
+
                 <div id="requestResult" class="result" aria-live="polite"></div>
             </div>
         </details>
 
-        <!-- 3. Deadlock Detection -->
+        <!-- SECTION 3: DEADLOCK DETECTION -->
         <details class="panel">
             <summary>3. Deadlock Detection</summary>
 
@@ -409,12 +402,15 @@
 1, 0, 0
 0, 0, 2</textarea>
 
-                <button type="button" onclick="checkDeadlock()">Detect Deadlock</button>
+                <button type="button" onclick="checkDeadlock()">
+                    Detect Deadlock
+                </button>
+
                 <div id="deadlockResult" class="result" aria-live="polite"></div>
             </div>
         </details>
 
-        <!-- 4. PARAH -->
+        <!-- SECTION 4: PARAH -->
         <details class="panel">
             <summary>4. PARAH Recommendation</summary>
 
@@ -434,10 +430,33 @@
                     Example: 0, 1, 0, 0 means process P0 requests [1, 0, 0].
                 </p>
 
-                <button type="button" onclick="checkParah()">Rank Requests</button>
+                <button type="button" onclick="checkParah()">
+                    Rank Requests
+                </button>
+
                 <div id="parahResult" class="result" aria-live="polite"></div>
             </div>
         </details>
+
+        <!-- SECTION 5: FLEXIBILITY ANALYSIS - ONLY ONE COPY -->
+        <details class="panel">
+            <summary>5. DeadlockGuard Flexibility Analysis</summary>
+
+            <div class="panel-content">
+                <p class="description">
+                    Measure the proportion of unfinished processes whose remaining
+                    resource needs can be satisfied immediately. This is a
+                    flexibility indicator, not a probability of deadlock.
+                </p>
+
+                <button type="button" onclick="checkFlexibility()">
+                    Analyse Flexibility
+                </button>
+
+                <div id="flexibilityResult" class="result" aria-live="polite"></div>
+            </div>
+        </details>
+
     </main>
 
     <footer>
@@ -445,6 +464,8 @@
     </footer>
 
     <script>
+
+        // PARSE A RESOURCE VECTOR
         function parseVector(text) {
             const trimmed = text.trim();
 
@@ -454,53 +475,87 @@
 
             const values = trimmed.split(/[,\s]+/).map(Number);
 
-            if (values.some(value => !Number.isFinite(value) ||
-                !Number.isInteger(value) || value < 0)) {
-                throw new Error("Enter non-negative whole numbers separated by commas.");
+            if (values.some(value =>
+                !Number.isFinite(value) ||
+                !Number.isInteger(value) ||
+                value < 0
+            )) {
+                throw new Error(
+                    "Enter non-negative whole numbers separated by commas."
+                );
             }
 
             return values;
         }
 
-        function parseMatrix(text) {
-            const rows = text.trim().split(/\n+/).map(parseVector);
 
-            if (!rows.length || !rows[0].length) {
+        // PARSE A MATRIX
+        function parseMatrix(text) {
+            const trimmed = text.trim();
+
+            if (!trimmed) {
                 throw new Error("Please enter the matrix values.");
             }
 
+            const rows = trimmed.split(/\n+/).map(parseVector);
             const width = rows[0].length;
 
             if (rows.some(row => row.length !== width)) {
-                throw new Error("Every row in a matrix must have the same number of values.");
+                throw new Error(
+                    "Every row in a matrix must have the same number of values."
+                );
             }
 
             return rows;
         }
 
+
+        // READ AND VALIDATE SHARED INPUTS
         function getData() {
-            const available = parseVector(document.getElementById("available").value);
-            const maximum = parseMatrix(document.getElementById("maximum").value);
-            const allocation = parseMatrix(document.getElementById("allocation").value);
+            const available = parseVector(
+                document.getElementById("available").value
+            );
+
+            const maximum = parseMatrix(
+                document.getElementById("maximum").value
+            );
+
+            const allocation = parseMatrix(
+                document.getElementById("allocation").value
+            );
 
             if (maximum.length !== allocation.length) {
-                throw new Error("Maximum and Allocation matrices must have the same number of processes.");
+                throw new Error(
+                    "Maximum and Allocation matrices must have the same number of processes."
+                );
             }
 
-            if (maximum.some(row => row.length !== available.length) ||
-                allocation.some(row => row.length !== available.length)) {
-                throw new Error("The Available vector and both matrices must have the same number of resource types.");
+            if (
+                maximum.some(row => row.length !== available.length) ||
+                allocation.some(row => row.length !== available.length)
+            ) {
+                throw new Error(
+                    "The Available vector and both matrices must have the same number of resource types."
+                );
             }
 
-            return { available, maximum, allocation };
+            return {
+                available,
+                maximum,
+                allocation
+            };
         }
 
+
+        // ADD A HEADING
         function addHeading(container, text) {
             const heading = document.createElement("h3");
             heading.textContent = text;
             container.appendChild(heading);
         }
 
+
+        // ADD A PARAGRAPH
         function addText(container, text, className = "") {
             const paragraph = document.createElement("p");
             paragraph.textContent = text;
@@ -510,9 +565,10 @@
             }
 
             container.appendChild(paragraph);
-            return paragraph;
         }
 
+
+        // ADD A METRIC
         function addMetric(container, label, value) {
             const metric = document.createElement("span");
             metric.className = "metric";
@@ -520,6 +576,8 @@
             container.appendChild(metric);
         }
 
+
+        // CREATE A TABLE
         function addTable(container, headers, rows) {
             const wrap = document.createElement("div");
             wrap.className = "table-wrap";
@@ -556,6 +614,8 @@
             container.appendChild(wrap);
         }
 
+
+        // SHOW RAW TECHNICAL RESPONSE
         function showRawDetails(container, result) {
             const details = document.createElement("details");
             details.className = "raw-details";
@@ -570,32 +630,58 @@
             container.appendChild(details);
         }
 
+
+        // DISPLAY ERRORS
         function showError(output, message) {
             output.className = "result warning";
             output.replaceChildren();
+
             addHeading(output, "Unable to complete analysis");
             addText(output, message);
         }
 
+
+        // DISPLAY BANKER'S ALGORITHM RESULTS
         function renderSafety(output, result) {
             const safe = result.safe === true;
+
             output.className = "result " + (safe ? "success" : "warning");
             output.replaceChildren();
 
-            addHeading(output, safe ? "System is in a SAFE state" : "System is NOT in a safe state");
+            addHeading(
+                output,
+                safe
+                    ? "System is in a SAFE state"
+                    : "System is NOT in a safe state"
+            );
+
             addMetric(output, "Status", safe ? "SAFE" : "UNSAFE");
 
-            if (result.safe_sequence) {
-                addText(output, "Safe sequence: " + result.safe_sequence.join(" → "), "sequence");
-            } else if (result.message) {
+            if (result.message) {
                 addText(output, result.message);
+            }
+
+            if (result.safe_sequence) {
+                addText(
+                    output,
+                    "Safe sequence: " + result.safe_sequence.join(" → "),
+                    "sequence"
+                );
             }
 
             if (result.need && result.need.length) {
                 addText(output, "Need Matrix");
 
-                const headers = ["Process", ...result.need[0].map((_, i) => "Resource " + (i + 1))];
-                const rows = result.need.map((row, i) => ["P" + i, ...row]);
+                const headers = [
+                    "Process",
+                    ...result.need[0].map(
+                        (_, i) => "Resource " + (i + 1)
+                    )
+                ];
+
+                const rows = result.need.map(
+                    (row, i) => ["P" + i, ...row]
+                );
 
                 addTable(output, headers, rows);
             }
@@ -603,48 +689,97 @@
             showRawDetails(output, result);
         }
 
+
+        // DISPLAY RESOURCE REQUEST RESULTS
         function renderRequest(output, result) {
             const granted = result.granted === true;
-            output.className = "result " + (granted ? "success" : "warning");
+
+            output.className = "result " + (
+                granted ? "success" : "warning"
+            );
+
             output.replaceChildren();
 
-            addHeading(output, granted ? "Resource request granted" : "Resource request not granted");
-            addMetric(output, "Decision", granted ? "GRANTED" : "NOT GRANTED");
+            addHeading(
+                output,
+                granted
+                    ? "Resource request granted"
+                    : "Resource request not granted"
+            );
+
+            addMetric(
+                output,
+                "Decision",
+                granted ? "GRANTED" : "NOT GRANTED"
+            );
 
             if (result.reason) {
                 addText(output, result.reason);
-            } else if (result.message) {
-                addText(output, result.message);
             }
 
             if (result.available_after) {
-                addText(output, "Available resources after the decision: " + result.available_after.join(", "));
+                addText(
+                    output,
+                    "Available resources after the decision: " +
+                    result.available_after.join(", ")
+                );
             }
 
             if (result.safe_sequence) {
-                addText(output, "Safe sequence: " + result.safe_sequence.join(" → "), "sequence");
+                addText(
+                    output,
+                    "Safe sequence: " +
+                    result.safe_sequence.join(" → "),
+                    "sequence"
+                );
             }
 
-            if (result.allocation_after && result.allocation_after.length) {
+            if (
+                result.allocation_after &&
+                result.allocation_after.length
+            ) {
                 addText(output, "Allocation Matrix After Decision");
 
                 addTable(
                     output,
-                    ["Process", ...result.allocation_after[0].map((_, i) => "Resource " + (i + 1))],
-                    result.allocation_after.map((row, i) => ["P" + i, ...row])
+                    [
+                        "Process",
+                        ...result.allocation_after[0].map(
+                            (_, i) => "Resource " + (i + 1)
+                        )
+                    ],
+                    result.allocation_after.map(
+                        (row, i) => ["P" + i, ...row]
+                    )
                 );
             }
 
             showRawDetails(output, result);
         }
 
+
+        // DISPLAY DEADLOCK DETECTION RESULTS
         function renderDeadlock(output, result) {
             const deadlock = result.deadlock === true;
-            output.className = "result " + (deadlock ? "warning" : "success");
+
+            output.className = "result " + (
+                deadlock ? "warning" : "success"
+            );
+
             output.replaceChildren();
 
-            addHeading(output, deadlock ? "Deadlock detected" : "No deadlock detected");
-            addMetric(output, "Status", deadlock ? "DEADLOCK" : "NO DEADLOCK");
+            addHeading(
+                output,
+                deadlock
+                    ? "Deadlock detected"
+                    : "No deadlock detected"
+            );
+
+            addMetric(
+                output,
+                "Status",
+                deadlock ? "DEADLOCK" : "NO DEADLOCK"
+            );
 
             if (result.message) {
                 addText(output, result.message);
@@ -652,33 +787,46 @@
 
             const processes = result.deadlocked_processes || [];
 
-            if (processes.length) {
-                addText(output, "Deadlocked processes: " + processes.join(", "), "sequence");
-            } else {
-                addText(output, "Deadlocked processes: None");
-            }
+            addText(
+                output,
+                "Deadlocked processes: " +
+                (processes.length ? processes.join(", ") : "None")
+            );
 
             showRawDetails(output, result);
         }
 
+
+        // DISPLAY PARAH RESULTS
         function renderParah(output, result) {
             const ranked = result.ranked_safe_requests || [];
             const recommended = result.recommended_request;
 
-            output.className = "result " + (recommended ? "success" : "warning");
+            output.className = "result " + (
+                recommended ? "success" : "warning"
+            );
+
             output.replaceChildren();
 
-            addHeading(output, result.message || "PARAH analysis completed");
+            addHeading(
+                output,
+                result.message || "PARAH analysis completed"
+            );
 
             if (recommended) {
                 addText(
                     output,
-                    `Recommended request: P${recommended.process_id} requesting [${recommended.request.join(", ")}]`,
+                    `Recommended request: P${recommended.process_id} requesting ` +
+                    `[${recommended.request.join(", ")}]`,
                     "sequence"
                 );
 
                 if (recommended.score !== undefined) {
-                    addMetric(output, "Recommendation score", recommended.score);
+                    addMetric(
+                        output,
+                        "Recommendation score",
+                        recommended.score
+                    );
                 }
             } else {
                 addText(output, "No safe request was recommended.");
@@ -689,7 +837,13 @@
 
                 addTable(
                     output,
-                    ["Rank", "Process", "Request Vector", "Score", "Safe Sequence"],
+                    [
+                        "Rank",
+                        "Process",
+                        "Request Vector",
+                        "Score",
+                        "Safe Sequence"
+                    ],
                     ranked.map((item, index) => [
                         index + 1,
                         "P" + item.process_id,
@@ -703,18 +857,109 @@
             const rejected = result.rejected_requests || [];
 
             if (rejected.length) {
-                addText(output, "Rejected requests: " + rejected.length);
+                addText(
+                    output,
+                    "Rejected requests: " + rejected.length
+                );
             }
 
             showRawDetails(output, result);
         }
 
+
+        // DISPLAY FLEXIBILITY ANALYSIS RESULTS
+        function renderFlexibility(output, result) {
+            const safe = result.safe === true;
+            const level = result.risk_level || "UNKNOWN";
+
+            const highRisk = !safe || level === "HIGH";
+
+            output.className = "result " + (
+                highRisk ? "warning" : "success"
+            );
+
+            output.replaceChildren();
+
+            addHeading(
+                output,
+                "Safe-Sequence Flexibility Analysis"
+            );
+
+            addMetric(
+                output,
+                "System status",
+                safe ? "SAFE" : "UNSAFE"
+            );
+
+            addMetric(
+                output,
+                "Warning level",
+                level
+            );
+
+            addMetric(
+                output,
+                "Flexibility score",
+                result.flexibility_score ?? "—"
+            );
+
+            addMetric(
+                output,
+                "Flexibility",
+                result.flexibility_percentage !== undefined
+                    ? result.flexibility_percentage + "%"
+                    : "—"
+            );
+
+            addMetric(
+                output,
+                "Immediately eligible",
+                `${result.eligible_count ?? "—"} / ` +
+                `${result.unfinished_count ?? "—"}`
+            );
+
+            addText(
+                output,
+                "Eligible processes: " +
+                (
+                    (result.eligible_processes || []).join(", ") ||
+                    "None"
+                )
+            );
+
+            if (result.warning) {
+                addText(output, result.warning);
+            }
+
+            if (result.safe_sequence) {
+                addText(
+                    output,
+                    "Safe sequence: " +
+                    result.safe_sequence.join(" → "),
+                    "sequence"
+                );
+            }
+
+            addText(
+                output,
+                "Interpretation: the score measures immediate execution " +
+                "options. It is not a probability of deadlock and does " +
+                "not replace Banker's safety check.",
+                "hint"
+            );
+
+            showRawDetails(output, result);
+        }
+
+
+        // SEND REQUEST TO FLASK
         async function sendRequest(url, data, resultId) {
             const output = document.getElementById(resultId);
             const button = output.parentElement.querySelector("button");
 
             output.className = "result";
             output.replaceChildren();
+
             addText(output, "Analysing request...");
 
             if (button) {
@@ -724,27 +969,56 @@
             try {
                 const response = await fetch(url, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify(data)
                 });
 
-                const result = await response.json();
+                // Handle non-JSON responses with a clear error.
+                const responseText = await response.text();
+
+                let result;
+
+                try {
+                    result = JSON.parse(responseText);
+                } catch {
+                    throw new Error(
+                        "The server returned a non-JSON response. " +
+                        "Open the dashboard through http://127.0.0.1:5000/ " +
+                        "and confirm that Flask is running."
+                    );
+                }
 
                 if (!response.ok || result.error) {
-                    throw new Error(result.error || "The server could not process the request.");
+                    throw new Error(
+                        result.error ||
+                        "The server could not process the request."
+                    );
                 }
 
                 if (url === "/api/safety") {
                     renderSafety(output, result);
+
                 } else if (url === "/api/request") {
                     renderRequest(output, result);
+
                 } else if (url === "/api/deadlock") {
                     renderDeadlock(output, result);
+
                 } else if (url === "/api/parah") {
                     renderParah(output, result);
+
+                } else if (url === "/api/flexibility") {
+                    renderFlexibility(output, result);
                 }
+
             } catch (error) {
-                showError(output, error.message || "Could not contact Flask. Check that the server is running.");
+                showError(
+                    output,
+                    error.message || "Could not contact Flask."
+                );
+
             } finally {
                 if (button) {
                     button.disabled = false;
@@ -752,72 +1026,140 @@
             }
         }
 
+
+        // SAFELY RUN VALIDATION AND API CALLS
         function runSafely(callback, resultId) {
             try {
                 callback();
             } catch (error) {
-                showError(document.getElementById(resultId), error.message);
+                showError(
+                    document.getElementById(resultId),
+                    error.message
+                );
             }
         }
 
+
+        // BUTTON 1: CHECK SAFETY
         function checkSafety() {
             runSafely(
-                () => sendRequest("/api/safety", getData(), "safetyResult"),
+                () => sendRequest(
+                    "/api/safety",
+                    getData(),
+                    "safetyResult"
+                ),
                 "safetyResult"
             );
         }
 
+
+        // BUTTON 2: EVALUATE RESOURCE REQUEST
         function checkRequest() {
             runSafely(() => {
                 const data = getData();
-                const processId = Number(document.getElementById("processId").value);
 
-                if (!Number.isInteger(processId) || processId < 0 ||
-                    processId >= data.maximum.length) {
-                    throw new Error("Process ID must be between 0 and " + (data.maximum.length - 1) + ".");
+                const processId = Number(
+                    document.getElementById("processId").value
+                );
+
+                if (
+                    !Number.isInteger(processId) ||
+                    processId < 0 ||
+                    processId >= data.maximum.length
+                ) {
+                    throw new Error(
+                        "Process ID must be between 0 and " +
+                        (data.maximum.length - 1) + "."
+                    );
                 }
 
                 data.process_id = processId;
-                data.request = parseVector(document.getElementById("requestVector").value);
 
-                if (data.request.length !== data.available.length) {
-                    throw new Error("Request vector must contain " + data.available.length + " values.");
+                data.request = parseVector(
+                    document.getElementById("requestVector").value
+                );
+
+                if (
+                    data.request.length !== data.available.length
+                ) {
+                    throw new Error(
+                        "Request vector must contain " +
+                        data.available.length + " values."
+                    );
                 }
 
-                sendRequest("/api/request", data, "requestResult");
+                sendRequest(
+                    "/api/request",
+                    data,
+                    "requestResult"
+                );
+
             }, "requestResult");
         }
 
+
+        // BUTTON 3: DETECT DEADLOCK
         function checkDeadlock() {
             runSafely(() => {
                 const data = getData();
-                data.request = parseMatrix(document.getElementById("outstanding").value);
 
-                if (data.request.length !== data.allocation.length) {
-                    throw new Error("Outstanding Request Matrix must have one row per process.");
+                data.request = parseMatrix(
+                    document.getElementById("outstanding").value
+                );
+
+                if (
+                    data.request.length !== data.allocation.length
+                ) {
+                    throw new Error(
+                        "Outstanding Request Matrix must have one row per process."
+                    );
                 }
 
-                if (data.request.some(row => row.length !== data.available.length)) {
-                    throw new Error("Every outstanding request row must match the number of resource types.");
+                if (
+                    data.request.some(
+                        row => row.length !== data.available.length
+                    )
+                ) {
+                    throw new Error(
+                        "Every outstanding request row must match " +
+                        "the number of resource types."
+                    );
                 }
 
-                sendRequest("/api/deadlock", data, "deadlockResult");
+                sendRequest(
+                    "/api/deadlock",
+                    data,
+                    "deadlockResult"
+                );
+
             }, "deadlockResult");
         }
 
+
+        // BUTTON 4: PARAH RECOMMENDATION
         function checkParah() {
             runSafely(() => {
                 const data = getData();
 
-                data.pending_requests = document.getElementById("pending").value
-                    .trim()
+                const text = document.getElementById("pending").value.trim();
+
+                if (!text) {
+                    throw new Error(
+                        "Enter at least one pending request."
+                    );
+                }
+
+                data.pending_requests = text
                     .split(/\n+/)
                     .map(line => {
                         const values = parseVector(line);
 
-                        if (values.length !== data.available.length + 1) {
+                        if (
+                            values.length !== data.available.length + 1
+                        ) {
                             throw new Error(
-                                "Each pending request row must contain one process ID and " +
+                                "Each pending request row must contain " +
+                                "one process ID and " +
                                 data.available.length + " resource values."
                             );
                         }
@@ -828,9 +1170,28 @@
                         };
                     });
 
-                sendRequest("/api/parah", data, "parahResult");
+                sendRequest(
+                    "/api/parah",
+                    data,
+                    "parahResult"
+                );
+
             }, "parahResult");
         }
+
+
+        // BUTTON 5: FLEXIBILITY ANALYSIS
+        function checkFlexibility() {
+            runSafely(
+                () => sendRequest(
+                    "/api/flexibility",
+                    getData(),
+                    "flexibilityResult"
+                ),
+                "flexibilityResult"
+            );
+        }
+
     </script>
 
 </body>

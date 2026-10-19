@@ -1,0 +1,4 @@
+Model,Experiments,Average Safe Requests,Average Execution Time (ms)
+FCFS,200,1.42,0.022687
+Least Remaining Need,200,1.42,0.023335
+PARAH,200,1.42,0.035013

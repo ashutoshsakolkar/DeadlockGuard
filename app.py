@@ -5,10 +5,11 @@ from algorithms import (
     bankers_algorithm,
     detect_deadlock,
     request_resources,
-    parah_recommendation
+    parah_recommendation,
+    analyze_flexibility
 )
 
-# Initialize Flask BEFORE using app.run()
+# Initialize Flask
 app = Flask(__name__)
 
 
@@ -85,6 +86,24 @@ def run_parah():
             data["maximum"],
             data["allocation"],
             data["pending_requests"]
+        )
+
+        return jsonify(result)
+
+    except (KeyError, TypeError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+# API 5: DEADLOCKGUARD FLEXIBILITY ANALYSIS
+@app.route("/api/flexibility", methods=["POST"])
+def check_flexibility():
+    try:
+        data = request.get_json()
+
+        result = analyze_flexibility(
+            data["available"],
+            data["maximum"],
+            data["allocation"]
         )
 
         return jsonify(result)
