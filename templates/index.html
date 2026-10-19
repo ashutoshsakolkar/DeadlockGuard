@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeadlockGuard | OS Simulator</title>
+
+    <style>
+        :root {
+            --background: #f2efe6;
+            --surface: #fffdf8;
+            --olive: #536246;
+            --olive-dark: #35402f;
+            --text: #30382b;
+            --muted: #747766;
+            --border: #ded8c8;
+            --terracotta: #b77451;
+            --success-bg: #edf3e7;
+            --danger-bg: #f8eae0;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--text);
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        header {
+            background: var(--olive-dark);
+            color: white;
+            padding: 28px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 32px;
+            letter-spacing: 0.5px;
+        }
+
+        header p {
+            margin: 6px 0 0;
+            color: #d8ddce;
+        }
+
+        main {
+            max-width: 1050px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .intro {
+            margin-bottom: 22px;
+        }
+
+        .intro h2 {
+            margin-bottom: 4px;
+            color: var(--olive-dark);
+        }
+
+        .intro p {
+            margin-top: 4px;
+            color: var(--muted);
+        }
+
+        details.panel {
+            margin-bottom: 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        details.panel summary {
+            padding: 19px 22px;
+            color: var(--olive-dark);
+            font-size: 21px;
+            font-weight: bold;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        details.panel summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.panel summary::after {
+            content: "+";
+            color: var(--terracotta);
+            font-size: 27px;
+            font-weight: normal;
+        }
+
+        details.panel[open] summary::after {
+            content: "−";
+        }
+
+        details.panel summary:hover {
+            background: #f6f3e9;
+        }
+
+        .panel-content {
+            padding: 0 22px 24px;
+            border-top: 1px solid #eee9dc;
+        }
+
+        .description {
+            color: var(--muted);
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 6px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #c9c4b5;
+            border-radius: 6px;
+            background: #faf8f1;
+            color: var(--text);
+            font: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 95px;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: 2px solid #aab69a;
+            border-color: var(--olive);
+        }
+
+        .hint {
+            color: var(--muted);
+            font-size: 13px;
+            margin: 5px 0;
+        }
+
+        button {
+            margin-top: 17px;
+            padding: 12px 18px;
+            background: var(--olive);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font: inherit;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--olive-dark);
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: wait;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 18px;
+            background: #f7f5ed;
+            border: 1px solid var(--border);
+            border-left: 5px solid var(--olive);
+            border-radius: 7px;
+            overflow-wrap: anywhere;
+        }
+
+        .result:empty {
+            display: none;
+        }
+
+        .result h3 {
+            margin: 0 0 10px;
+            font-size: 19px;
+        }
+
+        .result p {
+            margin: 7px 0;
+        }
+
+        .result.success {
+            background: var(--success-bg);
+            border-left-color: #66804e;
+        }
+
+        .result.warning {
+            background: var(--danger-bg);
+            border-left-color: var(--terracotta);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            background: #e0e9d7;
+            color: #35402f;
+        }
+
+        .warning .status {
+            background: #f0d7c7;
+            color: #763e26;
+        }
+
+        .table-wrap {
+            margin-top: 16px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            font-size: 14px;
+        }
+
+        th,
+        td {
+            padding: 11px 12px;
+            text-align: left;
+            border: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        th {
+            background: var(--olive-dark);
+            color: white;
+            white-space: nowrap;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f4f1e7;
+        }
+
+        .sequence {
+            font-weight: bold;
+            color: var(--olive-dark);
+            overflow-wrap: anywhere;
+        }
+
+        .metric {
+            display: inline-block;
+            margin: 5px 5px 5px 0;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface);
+        }
+
+        .raw-details {
+            margin-top: 15px;
+        }
+
+        .raw-details summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        pre {
+            padding: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #f1eee4;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+
+        footer {
+            padding: 22px;
+            text-align: center;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        @media (max-width: 600px) {
+            main {
+                margin-top: 18px;
+                padding: 0 12px;
+            }
+
+            header h1 {
+                font-size: 26px;
+            }
+
+            details.panel summary {
+                padding: 16px;
+                font-size: 18px;
+            }
+
+            .panel-content {
+                padding: 0 15px 18px;
+            }
+
+            th,
+            td {
+                padding: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>DeadlockGuard</h1>
+        <p>Deadlock Detection and Avoidance Simulator</p>
+    </header>
+
+    <main>
+        <div class="intro">
+            <h2>Resource Management Console</h2>
+            <p>
+                Analyse system safety, evaluate resource requests, detect deadlocks,
+                and compare safe allocation recommendations.
+            </p>
+        </div>
+
+        <!-- 1. Banker's Algorithm -->
+        <details class="panel" open>
+            <summary>1. Banker's Algorithm</summary>
+
+            <div class="panel-content">
+                <p class="description">
+                    Determine whether all processes can finish in a safe sequence.
+                </p>
+
+                <label for="available">Available Vector</label>
+                <input id="available" value="3, 3, 2">
+                <p class="hint">Enter resource quantities separated by commas.</p>
+
+                <label for="maximum">Maximum Matrix</label>
+                <textarea id="maximum" rows="5">7, 5, 3
+3, 2, 2
+9, 0, 2
+2, 2, 2
+4, 3, 3</textarea>
+
+                <label for="allocation">Allocation Matrix</label>
+                <textarea id="allocation" rows="5">0, 1, 0
+2, 0, 0
+3, 0, 2
+2, 1, 1
+0, 0, 2</textarea>
+
+                <button type="button" onclick="checkSafety()">Check Safety</button>
+                <div id="safetyResult" class="result" aria-live="polite"></div>
+            </div>
+        </details>
+
+        <!-- 2. Resource Request -->
+        <details class="panel">
+            <summary>2. Resource Request</summary>
+
+            <div class="panel-content">
+                <p class="description">
+                    Check whether a process request can be granted without making
+                    the system unsafe.
+                </p>
+
+                <label for="processId">Process ID</label>
+                <input id="processId" type="number" min="0" value="1">
+
+                <label for="requestVector">Request Vector</label>
+                <input id="requestVector" value="1, 0, 1">
+
+                <button type="button" onclick="checkRequest()">Evaluate Request</button>
+                <div id="requestResult" class="result" aria-live="polite"></div>
+            </div>
+        </details>
+
+        <!-- 3. Deadlock Detection -->
+        <details class="panel">
+            <summary>3. Deadlock Detection</summary>
+
+            <div class="panel-content">
+                <p class="description">
+                    Analyse outstanding resource requests to determine whether
+                    processes are deadlocked.
+                </p>
+
+                <label for="outstanding">Outstanding Request Matrix</label>
+                <textarea id="outstanding" rows="5">0, 0, 0
+2, 0, 2
+0, 0, 0
+1, 0, 0
+0, 0, 2</textarea>
+
+                <button type="button" onclick="checkDeadlock()">Detect Deadlock</button>
+                <div id="deadlockResult" class="result" aria-live="polite"></div>
+            </div>
+        </details>
+
+        <!-- 4. PARAH -->
+        <details class="panel">
+            <summary>4. PARAH Recommendation</summary>
+
+            <div class="panel-content">
+                <p class="description">
+                    Rank safe pending requests using the proposed
+                    Priority-Aware Resource Allocation Heuristic.
+                </p>
+
+                <label for="pending">Pending Requests</label>
+                <textarea id="pending" rows="4">0, 1, 0, 0
+1, 0, 1, 0
+3, 0, 1, 0</textarea>
+
+                <p class="hint">
+                    Each row contains a process ID followed by its request vector.
+                    Example: 0, 1, 0, 0 means process P0 requests [1, 0, 0].
+                </p>
+
+                <button type="button" onclick="checkParah()">Rank Requests</button>
+                <div id="parahResult" class="result" aria-live="polite"></div>
+            </div>
+        </details>
+    </main>
+
+    <footer>
+        DeadlockGuard · Operating Systems Principles Project
+    </footer>
+
+    <script>
+        function parseVector(text) {
+            const trimmed = text.trim();
+
+            if (!trimmed) {
+                throw new Error("Please enter the resource values.");
+            }
+
+            const values = trimmed.split(/[,\s]+/).map(Number);
+
+            if (values.some(value => !Number.isFinite(value) ||
+                !Number.isInteger(value) || value < 0)) {
+                throw new Error("Enter non-negative whole numbers separated by commas.");
+            }
+
+            return values;
+        }
+
+        function parseMatrix(text) {
+            const rows = text.trim().split(/\n+/).map(parseVector);
+
+            if (!rows.length || !rows[0].length) {
+                throw new Error("Please enter the matrix values.");
+            }
+
+            const width = rows[0].length;
+
+            if (rows.some(row => row.length !== width)) {
+                throw new Error("Every row in a matrix must have the same number of values.");
+            }
+
+            return rows;
+        }
+
+        function getData() {
+            const available = parseVector(document.getElementById("available").value);
+            const maximum = parseMatrix(document.getElementById("maximum").value);
+            const allocation = parseMatrix(document.getElementById("allocation").value);
+
+            if (maximum.length !== allocation.length) {
+                throw new Error("Maximum and Allocation matrices must have the same number of processes.");
+            }
+
+            if (maximum.some(row => row.length !== available.length) ||
+                allocation.some(row => row.length !== available.length)) {
+                throw new Error("The Available vector and both matrices must have the same number of resource types.");
+            }
+
+            return { available, maximum, allocation };
+        }
+
+        function addHeading(container, text) {
+            const heading = document.createElement("h3");
+            heading.textContent = text;
+            container.appendChild(heading);
+        }
+
+        function addText(container, text, className = "") {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = text;
+
+            if (className) {
+                paragraph.className = className;
+            }
+
+            container.appendChild(paragraph);
+            return paragraph;
+        }
+
+        function addMetric(container, label, value) {
+            const metric = document.createElement("span");
+            metric.className = "metric";
+            metric.textContent = `${label}: ${value}`;
+            container.appendChild(metric);
+        }
+
+        function addTable(container, headers, rows) {
+            const wrap = document.createElement("div");
+            wrap.className = "table-wrap";
+
+            const table = document.createElement("table");
+            const thead = document.createElement("thead");
+            const headerRow = document.createElement("tr");
+
+            headers.forEach(text => {
+                const th = document.createElement("th");
+                th.textContent = text;
+                headerRow.appendChild(th);
+            });
+
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement("tbody");
+
+            rows.forEach(row => {
+                const tr = document.createElement("tr");
+
+                row.forEach(value => {
+                    const td = document.createElement("td");
+                    td.textContent = String(value);
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+
+            table.appendChild(tbody);
+            wrap.appendChild(table);
+            container.appendChild(wrap);
+        }
+
+        function showRawDetails(container, result) {
+            const details = document.createElement("details");
+            details.className = "raw-details";
+
+            const summary = document.createElement("summary");
+            summary.textContent = "View technical response";
+
+            const pre = document.createElement("pre");
+            pre.textContent = JSON.stringify(result, null, 2);
+
+            details.append(summary, pre);
+            container.appendChild(details);
+        }
+
+        function showError(output, message) {
+            output.className = "result warning";
+            output.replaceChildren();
+            addHeading(output, "Unable to complete analysis");
+            addText(output, message);
+        }
+
+        function renderSafety(output, result) {
+            const safe = result.safe === true;
+            output.className = "result " + (safe ? "success" : "warning");
+            output.replaceChildren();
+
+            addHeading(output, safe ? "System is in a SAFE state" : "System is NOT in a safe state");
+            addMetric(output, "Status", safe ? "SAFE" : "UNSAFE");
+
+            if (result.safe_sequence) {
+                addText(output, "Safe sequence: " + result.safe_sequence.join(" → "), "sequence");
+            } else if (result.message) {
+                addText(output, result.message);
+            }
+
+            if (result.need && result.need.length) {
+                addText(output, "Need Matrix");
+
+                const headers = ["Process", ...result.need[0].map((_, i) => "Resource " + (i + 1))];
+                const rows = result.need.map((row, i) => ["P" + i, ...row]);
+
+                addTable(output, headers, rows);
+            }
+
+            showRawDetails(output, result);
+        }
+
+        function renderRequest(output, result) {
+            const granted = result.granted === true;
+            output.className = "result " + (granted ? "success" : "warning");
+            output.replaceChildren();
+
+            addHeading(output, granted ? "Resource request granted" : "Resource request not granted");
+            addMetric(output, "Decision", granted ? "GRANTED" : "NOT GRANTED");
+
+            if (result.reason) {
+                addText(output, result.reason);
+            } else if (result.message) {
+                addText(output, result.message);
+            }
+
+            if (result.available_after) {
+                addText(output, "Available resources after the decision: " + result.available_after.join(", "));
+            }
+
+            if (result.safe_sequence) {
+                addText(output, "Safe sequence: " + result.safe_sequence.join(" → "), "sequence");
+            }
+
+            if (result.allocation_after && result.allocation_after.length) {
+                addText(output, "Allocation Matrix After Decision");
+
+                addTable(
+                    output,
+                    ["Process", ...result.allocation_after[0].map((_, i) => "Resource " + (i + 1))],
+                    result.allocation_after.map((row, i) => ["P" + i, ...row])
+                );
+            }
+
+            showRawDetails(output, result);
+        }
+
+        function renderDeadlock(output, result) {
+            const deadlock = result.deadlock === true;
+            output.className = "result " + (deadlock ? "warning" : "success");
+            output.replaceChildren();
+
+            addHeading(output, deadlock ? "Deadlock detected" : "No deadlock detected");
+            addMetric(output, "Status", deadlock ? "DEADLOCK" : "NO DEADLOCK");
+
+            if (result.message) {
+                addText(output, result.message);
+            }
+
+            const processes = result.deadlocked_processes || [];
+
+            if (processes.length) {
+                addText(output, "Deadlocked processes: " + processes.join(", "), "sequence");
+            } else {
+                addText(output, "Deadlocked processes: None");
+            }
+
+            showRawDetails(output, result);
+        }
+
+        function renderParah(output, result) {
+            const ranked = result.ranked_safe_requests || [];
+            const recommended = result.recommended_request;
+
+            output.className = "result " + (recommended ? "success" : "warning");
+            output.replaceChildren();
+
+            addHeading(output, result.message || "PARAH analysis completed");
+
+            if (recommended) {
+                addText(
+                    output,
+                    `Recommended request: P${recommended.process_id} requesting [${recommended.request.join(", ")}]`,
+                    "sequence"
+                );
+
+                if (recommended.score !== undefined) {
+                    addMetric(output, "Recommendation score", recommended.score);
+                }
+            } else {
+                addText(output, "No safe request was recommended.");
+            }
+
+            if (ranked.length) {
+                addText(output, "Safe Requests Ranked by PARAH");
+
+                addTable(
+                    output,
+                    ["Rank", "Process", "Request Vector", "Score", "Safe Sequence"],
+                    ranked.map((item, index) => [
+                        index + 1,
+                        "P" + item.process_id,
+                        "[" + (item.request || []).join(", ") + "]",
+                        item.score ?? "—",
+                        (item.safe_sequence || []).join(" → ") || "—"
+                    ])
+                );
+            }
+
+            const rejected = result.rejected_requests || [];
+
+            if (rejected.length) {
+                addText(output, "Rejected requests: " + rejected.length);
+            }
+
+            showRawDetails(output, result);
+        }
+
+        async function sendRequest(url, data, resultId) {
+            const output = document.getElementById(resultId);
+            const button = output.parentElement.querySelector("button");
+
+            output.className = "result";
+            output.replaceChildren();
+            addText(output, "Analysing request...");
+
+            if (button) {
+                button.disabled = true;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    throw new Error(result.error || "The server could not process the request.");
+                }
+
+                if (url === "/api/safety") {
+                    renderSafety(output, result);
+                } else if (url === "/api/request") {
+                    renderRequest(output, result);
+                } else if (url === "/api/deadlock") {
+                    renderDeadlock(output, result);
+                } else if (url === "/api/parah") {
+                    renderParah(output, result);
+                }
+            } catch (error) {
+                showError(output, error.message || "Could not contact Flask. Check that the server is running.");
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
+        }
+
+        function runSafely(callback, resultId) {
+            try {
+                callback();
+            } catch (error) {
+                showError(document.getElementById(resultId), error.message);
+            }
+        }
+
+        function checkSafety() {
+            runSafely(
+                () => sendRequest("/api/safety", getData(), "safetyResult"),
+                "safetyResult"
+            );
+        }
+
+        function checkRequest() {
+            runSafely(() => {
+                const data = getData();
+                const processId = Number(document.getElementById("processId").value);
+
+                if (!Number.isInteger(processId) || processId < 0 ||
+                    processId >= data.maximum.length) {
+                    throw new Error("Process ID must be between 0 and " + (data.maximum.length - 1) + ".");
+                }
+
+                data.process_id = processId;
+                data.request = parseVector(document.getElementById("requestVector").value);
+
+                if (data.request.length !== data.available.length) {
+                    throw new Error("Request vector must contain " + data.available.length + " values.");
+                }
+
+                sendRequest("/api/request", data, "requestResult");
+            }, "requestResult");
+        }
+
+        function checkDeadlock() {
+            runSafely(() => {
+                const data = getData();
+                data.request = parseMatrix(document.getElementById("outstanding").value);
+
+                if (data.request.length !== data.allocation.length) {
+                    throw new Error("Outstanding Request Matrix must have one row per process.");
+                }
+
+                if (data.request.some(row => row.length !== data.available.length)) {
+                    throw new Error("Every outstanding request row must match the number of resource types.");
+                }
+
+                sendRequest("/api/deadlock", data, "deadlockResult");
+            }, "deadlockResult");
+        }
+
+        function checkParah() {
+            runSafely(() => {
+                const data = getData();
+
+                data.pending_requests = document.getElementById("pending").value
+                    .trim()
+                    .split(/\n+/)
+                    .map(line => {
+                        const values = parseVector(line);
+
+                        if (values.length !== data.available.length + 1) {
+                            throw new Error(
+                                "Each pending request row must contain one process ID and " +
+                                data.available.length + " resource values."
+                            );
+                        }
+
+                        return {
+                            process_id: values[0],
+                            request: values.slice(1)
+                        };
+                    });
+
+                sendRequest("/api/parah", data, "parahResult");
+            }, "parahResult");
+        }
+    </script>
+
+</body>
+
+</html>
